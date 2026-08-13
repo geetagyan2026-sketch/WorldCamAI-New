@@ -10,13 +10,13 @@ workflows:
     scripts:
       - name: Build APK
         script: |
-          # ज़िप फ़ाइल के अंदर छिपे फ़ोल्डर को ढूंढना
+          # ज़िप फ़ाइल के अंदर छिपे प्रोजेक्ट फ़ोल्डर को ढूंढकर उसमें जाना
           cd $(find . -maxdepth 2 -name "AndroidManifest.xml" -print -quit | sed 's/\/app\/src\/main\/AndroidManifest.xml//' | sed 's/\/src\/main\/AndroidManifest.xml//') 2>/dev/null || true
           
-          # आपके कोड के अनुकूल सही Gradle वर्जन (7.5) सेट करना
+          # Gradle को पुराने वर्जन 7.5 पर लॉक करना ताकि एरर न आए
           gradle wrapper --gradle-version 7.5
           
-          # सही सेटिंग्स फ़ाइल तैयार करना
+          # मिसिंग सेटिंग्स फ़ाइल को खुद जनरेट करना
           echo "include ':app'" > settings.gradle
           
           chmod +x gradlew
