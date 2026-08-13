@@ -44,10 +44,9 @@ jobs:
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "mock-id", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock-key"}]}]}' > app/src/debug/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "mock-id", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock-key"}]}]}' > app/src/release/google-services.json
 
-          # वर्शन को 8.7 किया ताकि KSP क्रैश न हो
-          gradle wrapper --gradle-version 8.7
+          # KSP क्रैश से बचने के लिए --no-daemon फ्लैग जोड़ा गया है
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
