@@ -58,10 +58,10 @@ jobs:
           cd android-clean
           if [ -d "clean" ]; then cd clean; fi
           
-          # मिसिंग google-services.json एरर को रोकने के लिए नकली फ़ाइल बनाना
+          # आपके असली पैकेज नाम (com.aistudio.worldcamai.kxmpzq) के साथ फ़ाइलें अपडेट करना
           mkdir -p app/src/debug app/src/release app
-          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai"}}, "api_key": [{"current_key": "mock-key"}], "services": {"appinvite_service": {"status": 1}}}]}' > app/google-services.json
-          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai"}}, "api_key": [{"current_key": "mock-key"}], "services": {"appinvite_service": {"status": 1}}}]}' > app/src/debug/google-services.json
+          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock-key"}], "services": {"appinvite_service": {"status": 1}}}]}' > app/google-services.json
+          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock-key"}], "services": {"appinvite_service": {"status": 1}}}]}' > app/src/debug/google-services.json
 
           gradle wrapper --gradle-version 9.3.1
           chmod +x gradlew
