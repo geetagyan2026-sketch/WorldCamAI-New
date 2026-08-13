@@ -1,0 +1,70 @@
+name: Build APK Directly
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Create Clean Android Structure
+        run: |
+          # पुराना खराब ढांचा साफ करके सही फोल्डर बनाना
+          mkdir -p android-clean/app/src/main
+          
+          # जहां भी AndroidManifest.xml छिपी है, उसे सही जगह लाना
+          MANIFEST_PATH=$(find . -name "AndroidManifest.xml" -print -quit)
+          if [ ! -z "$MANIFEST_PATH" ]; then
+            cp "$MANIFEST_PATH" android-clean/app/src/main/
+          fi
+          
+          # क्लीन प्रोजेक्ट के लिए बुनियादी फाइलें खुद तैयार करना
+          cd android-clean
+          echo "include ':app'" > settings.gradle
+          
+          cat << 'EOF' > build.gradle
+          buildscript {
+              repositories { google() \n mavenRepository() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects { repositories { google() \n mavenRepository() } }
+          EOF
+
+          cat << 'EOF' > app/build.gradle
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.aistudio.worldcamai'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.aistudio.worldcamai"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          EOF
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build with Gradle
+        run: |
+          cd android-clean
+          gradle wrapper --gradle-version 8.5
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload Finished APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorldCamAI-App
+          path: android-clean/app/build/outputs/apk/debug/*.apk
