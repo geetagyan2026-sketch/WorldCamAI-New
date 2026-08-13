@@ -1,4 +1,4 @@
-name: Build APK Directly
+name: Build APK Directly From Zip
 on:
   workflow_dispatch:
 
@@ -15,72 +15,47 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Create Clean Android Structure
+      - name: Extract AI Studio Project Zip
         run: |
-          mkdir -p android-clean/app/src/main
+          mkdir -p android-clean
+          # गिटहब पर अपलोड की गई ज़िप फ़ाइल को अनज़िप करना
+          unzip -o *.zip -d android-clean/ || true
           
-          cat << 'EOF' > android-clean/app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://github.com"
-              xmlns:tools="http://github.com">
+          # अगर ज़िप के अंदर कोई सब-फ़ोल्डर है तो उसे बाहर मुख्य डायरेक्टरी में लाना
+          if [ -d "android-clean/geeta-gian-sketch" ]; then
+            cp -r android-clean/geeta-gian-sketch/* android-clean/
+          fi
 
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.CAMERA" />
+          # मैनिफ़ेस्ट फ़ाइल के पुराने एरर को पूरी तरह ओवरराइड (साफ़) करना
+          MANIFEST_PATH=$(find android-clean -name "AndroidManifest.xml" -print -quit)
+          if [ ! -z "$MANIFEST_PATH" ]; then
+            cat << 'EOF' > "$MANIFEST_PATH"
+            <?xml version="1.0" encoding="utf-8"?>
+            <manifest xmlns:android="http://github.com"
+                xmlns:tools="http://github.com">
 
-              <application
-                  android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
-                  android:label="WorldCamAI"
-                  android:roundIcon="@mipmap/ic_launcher_round"
-                  android:supportsRtl="true"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity
-                      android:name="com.aistudio.worldcamai.MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-          
-          cd android-clean
-          echo "include ':app'" > settings.gradle
-          
-          cat << 'EOF' > build.gradle
-          buildscript {
-              repositories { 
-                  google() 
-                  mavenCentral() 
-              }
-              dependencies { 
-                  classpath 'com.android.tools.build:gradle:8.2.2' 
-              }
-          }
-          allprojects { 
-              repositories { 
-                  google() 
-                  mavenCentral() 
-              } 
-          }
-          EOF
+                <uses-permission android:name="android.permission.INTERNET" />
+                <uses-permission android:name="android.permission.CAMERA" />
 
-          cat << 'EOF' > app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.aistudio.worldcamai'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.aistudio.worldcamai"
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-          }
-          EOF
+                <application
+                    android:allowBackup="true"
+                    android:icon="@mipmap/ic_launcher"
+                    android:label="WorldCamAI"
+                    android:roundIcon="@mipmap/ic_launcher_round"
+                    android:supportsRtl="true"
+                    android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                    <activity
+                        android:name="com.aistudio.worldcamai.MainActivity"
+                        android:exported="true">
+                        <intent-filter>
+                            <action android:name="android.intent.action.MAIN" />
+                            <category android:name="android.intent.category.LAUNCHER" />
+                        </intent-filter>
+                    </activity>
+                </application>
+            </manifest>
+            EOF
+          fi
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -88,12 +63,15 @@ jobs:
       - name: Build with Gradle
         run: |
           cd android-clean
-          gradle wrapper --gradle-version 8.5
+          # अगर gradlew फ़ाइल गायब है तो उसे खुद बनाना
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper --gradle-version 8.5
+          fi
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: WorldCamAI-App
-          path: android-clean/app/build/outputs/apk/debug/*.apk
+          path: "**/build/outputs/apk/debug/*.apk"
