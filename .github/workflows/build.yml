@@ -57,9 +57,10 @@ jobs:
         run: |
           cd android-clean
           if [ -d "clean" ]; then cd clean; fi
-          if [ ! -f "gradlew" ]; then
-            gradle wrapper --gradle-version 8.5
-          fi
+          
+          # आपके प्रोजेक्ट के अनुसार यहाँ Gradle 9.3.1 सेट किया गया है
+          gradle wrapper --gradle-version 9.3.1
+          
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
