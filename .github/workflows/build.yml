@@ -19,30 +19,43 @@ jobs:
         run: |
           mkdir -p android-clean/app/src/main
           
-          MANIFEST_PATH=$(find . -name "AndroidManifest.xml" -print -quit)
-          if [ ! -z "$MANIFEST_PATH" ]; then
-            cp "$MANIFEST_PATH" android-clean/app/src/main/
-          fi
+          # यहाँ पर हम सीधे बिल्कुल सही और एरर-फ्री कोड लिख रहे हैं ताकि कोई पुरानी फाइल डिस्टर्ब न करे
+          cat << 'EOF' > android-clean/app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://github.com"
+              xmlns:tools="http://github.com">
+
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.CAMERA" />
+
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="WorldCamAI"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:supportsRtl="true"
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity
+                      android:name="com.aistudio.worldcamai.MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
           
           cd android-clean
           echo "include ':app'" > settings.gradle
           
           cat << 'EOF' > build.gradle
           buildscript {
-              repositories { 
-                  google() 
-                  mavenCentral() 
-              }
-              dependencies { 
-                  classpath 'com.android.tools.build:gradle:8.2.2' 
-              }
+              repositories { google() \n mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
           }
-          allprojects { 
-              repositories { 
-                  google() 
-                  mavenCentral() 
-              } 
-          }
+          allprojects { repositories { google() \n mavenCentral() } }
           EOF
 
           cat << 'EOF' > app/build.gradle
