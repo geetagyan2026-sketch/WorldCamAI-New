@@ -24,30 +24,19 @@ jobs:
             cp -r android-clean/geeta-gian-sketch/* android-clean/
           fi
 
-          # पूरे प्रोजेक्ट में जितनी भी AndroidManifest.xml फाइलें हैं, उन सबको ढूंढकर बिल्कुल सही कोड से बदलना
+          # पक्के तौर पर सभी संभावित जगहों पर सही मैनिफ़ेस्ट फ़ाइल ओवरराइड करना
+          mkdir -p android-clean/app/src/main
+          mkdir -p android-clean/src/main
+          
+          CLEAN_MANIFEST='<?xml version="1.0" encoding="utf-8"?>\n<manifest xmlns:android="http://github.com"\n    xmlns:tools="http://github.com">\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <application\n        android:allowBackup="true"\n        android:icon="@mipmap/ic_launcher"\n        android:label="WorldCamAI"\n        android:roundIcon="@mipmap/ic_launcher_round"\n        android:supportsRtl="true"\n        android:theme="@style/Theme.AppCompat.Light.NoActionBar">\n        <activity\n            android:name="com.example.ui.MainActivity"\n            android:exported="true">\n            <intent-filter>\n                <action android:name="android.intent.action.MAIN" />\n                <category android:name="android.intent.category.LAUNCHER" />\n            </intent-filter>\n        </activity>\n    </application>\n</manifest>'
+
+          # हर जगह ज़बरदस्ती सही कोड लिखना
+          echo -e "$CLEAN_MANIFEST" > android-clean/app/src/main/AndroidManifest.xml
+          echo -e "$CLEAN_MANIFEST" > android-clean/src/main/AndroidManifest.xml
+          
+          # अगर कोई और छिपी हुई मैनिफ़ेस्ट फ़ाइल मिले तो उसे भी बदल दो
           find android-clean -name "AndroidManifest.xml" | while read -r MANIFEST_PATH; do
-            echo '<?xml version="1.0" encoding="utf-8"?>' > "$MANIFEST_PATH"
-            echo '<manifest xmlns:android="http://github.com"' >> "$MANIFEST_PATH"
-            echo '    xmlns:tools="http://github.com">' >> "$MANIFEST_PATH"
-            echo '    <uses-permission android:name="android.permission.INTERNET" />' >> "$MANIFEST_PATH"
-            echo '    <uses-permission android:name="android.permission.CAMERA" />' >> "$MANIFEST_PATH"
-            echo '    <application' >> "$MANIFEST_PATH"
-            echo '        android:allowBackup="true"' >> "$MANIFEST_PATH"
-            echo '        android:icon="@mipmap/ic_launcher"' >> "$MANIFEST_PATH"
-            echo '        android:label="WorldCamAI"' >> "$MANIFEST_PATH"
-            echo '        android:roundIcon="@mipmap/ic_launcher_round"' >> "$MANIFEST_PATH"
-            echo '        android:supportsRtl="true"' >> "$MANIFEST_PATH"
-            echo '        android:theme="@style/Theme.AppCompat.Light.NoActionBar">' >> "$MANIFEST_PATH"
-            echo '        <activity' >> "$MANIFEST_PATH"
-            echo '            android:name="com.example.ui.MainActivity"' >> "$MANIFEST_PATH"
-            echo '            android:exported="true">' >> "$MANIFEST_PATH"
-            echo '            <intent-filter>' >> "$MANIFEST_PATH"
-            echo '                <action android:name="android.intent.action.MAIN" />' >> "$MANIFEST_PATH"
-            echo '                <category android:name="android.intent.category.LAUNCHER" />' >> "$MANIFEST_PATH"
-            echo '            </intent-filter>' >> "$MANIFEST_PATH"
-            echo '        </activity>' >> "$MANIFEST_PATH"
-            echo '    </application>' >> "$MANIFEST_PATH"
-            echo '</manifest>' >> "$MANIFEST_PATH"
+            echo -e "$CLEAN_MANIFEST" > "$MANIFEST_PATH"
           done
 
       - name: Setup Gradle
