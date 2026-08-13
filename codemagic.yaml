@@ -6,22 +6,18 @@ workflows:
     environment:
       vars:
         ANDROID_NDK: "25.2.9519653"
-      java: 17
+      java: 11
     scripts:
       - name: Build APK
         script: |
-          # अगर ज़िप फ़ाइल के अंदर कोई फ़ोल्डर है तो उसके अंदर जाओ
+          # ज़िप फ़ाइल के अंदर छिपे फ़ोल्डर को ढूंढना
           cd $(find . -maxdepth 2 -name "AndroidManifest.xml" -print -quit | sed 's/\/app\/src\/main\/AndroidManifest.xml//' | sed 's/\/src\/main\/AndroidManifest.xml//') 2>/dev/null || true
           
-          # गायब बिल्ड फ़ाइलें खुद से बनाना
-          if [ ! -f "gradlew" ]; then
-            gradle wrapper
-          fi
+          # आपके कोड के अनुकूल सही Gradle वर्जन (7.5) सेट करना
+          gradle wrapper --gradle-version 7.5
           
-          # सेटिंग्स फ़ाइल बनाना
-          if [ ! -f "settings.gradle" ]; then
-            echo "include ':app'" > settings.gradle
-          fi
+          # सही सेटिंग्स फ़ाइल तैयार करना
+          echo "include ':app'" > settings.gradle
           
           chmod +x gradlew
           ./gradlew assembleDebug
