@@ -19,7 +19,6 @@ jobs:
         run: |
           mkdir -p android-clean/app/src/main
           
-          # यहाँ पर हम सीधे बिल्कुल सही और एरर-फ्री कोड लिख रहे हैं ताकि कोई पुरानी फाइल डिस्टर्ब न करे
           cat << 'EOF' > android-clean/app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://github.com"
@@ -52,10 +51,20 @@ jobs:
           
           cat << 'EOF' > build.gradle
           buildscript {
-              repositories { google() \n mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+              repositories { 
+                  google() 
+                  mavenCentral() 
+              }
+              dependencies { 
+                  classpath 'com.android.tools.build:gradle:8.2.2' 
+              }
           }
-          allprojects { repositories { google() \n mavenCentral() } }
+          allprojects { 
+              repositories { 
+                  google() 
+                  mavenCentral() 
+              } 
+          }
           EOF
 
           cat << 'EOF' > app/build.gradle
