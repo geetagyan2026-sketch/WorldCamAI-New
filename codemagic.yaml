@@ -10,8 +10,19 @@ workflows:
     scripts:
       - name: Build APK
         script: |
-          # यह कमांड आपकी ज़िप फ़ाइल के अंदर छिपे फ़ोल्डर को ढूँढकर उसमें चली जाएगी
-          cd $(find . -maxdepth 2 -name "app" -print -quit | sed 's/\/app//') 2>/dev/null || cd * || true
+          # अगर ज़िप फ़ाइल के अंदर कोई फ़ोल्डर है तो उसके अंदर जाओ
+          cd $(find . -maxdepth 2 -name "AndroidManifest.xml" -print -quit | sed 's/\/app\/src\/main\/AndroidManifest.xml//' | sed 's/\/src\/main\/AndroidManifest.xml//') 2>/dev/null || true
+          
+          # गायब बिल्ड फ़ाइलें खुद से बनाना
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper
+          fi
+          
+          # सेटिंग्स फ़ाइल बनाना
+          if [ ! -f "settings.gradle" ]; then
+            echo "include ':app'" > settings.gradle
+          fi
+          
           chmod +x gradlew
           ./gradlew assembleDebug
     artifacts:
