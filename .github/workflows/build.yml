@@ -18,25 +18,17 @@ jobs:
       - name: Extract AI Studio Project Zip
         run: |
           mkdir -p android-clean
-          unzip -o *.zip -d android-clean/ || true
-          
+          unzip -o "*.zip" -d android-clean/ || true
+
           if [ -d "android-clean/geeta-gian-sketch" ]; then
             cp -r android-clean/geeta-gian-sketch/* android-clean/
           fi
 
-          # पक्के तौर पर सभी संभावित जगहों पर सही मैनिफ़ेस्ट फ़ाइल ओवरराइड करना
-          mkdir -p android-clean/app/src/main
-          mkdir -p android-clean/src/main
-          
-          CLEAN_MANIFEST='<?xml version="1.0" encoding="utf-8"?>\n<manifest xmlns:android="http://github.com"\n    xmlns:tools="http://github.com">\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <application\n        android:allowBackup="true"\n        android:icon="@mipmap/ic_launcher"\n        android:label="WorldCamAI"\n        android:roundIcon="@mipmap/ic_launcher_round"\n        android:supportsRtl="true"\n        android:theme="@style/Theme.AppCompat.Light.NoActionBar">\n        <activity\n            android:name="com.example.ui.MainActivity"\n            android:exported="true">\n            <intent-filter>\n                <action android:name="android.intent.action.MAIN" />\n                <category android:name="android.intent.category.LAUNCHER" />\n            </intent-filter>\n        </activity>\n    </application>\n</manifest>'
-
-          # हर जगह ज़बरदस्ती सही कोड लिखना
-          echo -e "$CLEAN_MANIFEST" > android-clean/app/src/main/AndroidManifest.xml
-          echo -e "$CLEAN_MANIFEST" > android-clean/src/main/AndroidManifest.xml
-          
-          # अगर कोई और छिपी हुई मैनिफ़ेस्ट फ़ाइल मिले तो उसे भी बदल दो
+          # ऑटोमैटिक खराब परमिशन टैग को सही कोड से बदलना
           find android-clean -name "AndroidManifest.xml" | while read -r MANIFEST_PATH; do
-            echo -e "$CLEAN_MANIFEST" > "$MANIFEST_PATH"
+            if [ -f "$MANIFEST_PATH" ]; then
+              sed -i 's/<uses-permission[^>]*>/<uses-permission android:name="android.permission.INTERNET" \/>/g' "$MANIFEST_PATH"
+            fi
           done
 
       - name: Setup Gradle
@@ -45,12 +37,12 @@ jobs:
       - name: Build with Gradle
         run: |
           cd android-clean
-          if [ -d "clean" ]; then cd clean; fi
-          
+          if [ -d "clean" ]; then ./gradlew clean; fi
+
           # पैकेज नाम के साथ नकली google-services.json सेट करना
           mkdir -p app/src/debug app/src/release app
-          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock-key"}], "services": {"appinvite_service": {"status": 1}}}]}' > app/google-services.json
-          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock-key"}], "services": {"appinvite_service": {"status": 1}}}]}' > app/src/debug/google-services.json
+          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "mock-id", "android_client_info": {"package_name": "com.example.app"}}, "api_key": [{"current_key": "mock-key"}]}]}' > app/src/debug/google-services.json
+          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "mock-id", "android_client_info": {"package_name": "com.example.app"}}, "api_key": [{"current_key": "mock-key"}]}]}' > app/src/release/google-services.json
 
           gradle wrapper --gradle-version 9.3.1
           chmod +x gradlew
