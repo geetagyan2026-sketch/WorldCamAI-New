@@ -10,6 +10,9 @@ workflows:
     scripts:
       - name: Build APK
         script: |
+          # यह कमांड आपकी ज़िप फ़ाइल के अंदर छिपे फ़ोल्डर को ढूँढकर उसमें चली जाएगी
+          cd $(find . -maxdepth 2 -name "app" -print -quit | sed 's/\/app//') 2>/dev/null || cd * || true
+          chmod +x gradlew
           ./gradlew assembleDebug
     artifacts:
-      - app/build/outputs/apk/**/*.apk
+      - "**/build/outputs/apk/**/*.apk"
