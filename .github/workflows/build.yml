@@ -24,6 +24,7 @@ jobs:
             cp -r android-clean/geeta-gian-sketch/* android-clean/
           fi
 
+          # केवल गलत मैनिफ़ेस्ट फ़ाइल को सही कोड से बदलना ताकि ओरिजिनल बिल्ड फाइलें बची रहें
           MANIFEST_PATH=$(find android-clean -name "AndroidManifest.xml" -print -quit)
           if [ ! -z "$MANIFEST_PATH" ]; then
             echo '<?xml version="1.0" encoding="utf-8"?>' > "$MANIFEST_PATH"
@@ -56,13 +57,18 @@ jobs:
       - name: Build with Gradle
         run: |
           cd android-clean
-          if [ -d "clean" ]; then cd clean; fi
+          # पुराने टकराव वाले कचरे को साफ़ करना
+          rm -f build.gradle settings.gradle app/build.gradle 2>/dev/null || true
           
-          # आपके प्रोजेक्ट के अनुसार यहाँ Gradle 9.3.1 सेट किया गया है
-          gradle wrapper --gradle-version 9.3.1
-          
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          # प्रोजेक्ट के अपने असली ग्रैडल रैपर का उपयोग करना
+          chmod +x gradlew 2>/dev/null || true
+          if [ -f "gradlew" ]; then
+            ./gradlew assembleDebug --stacktrace
+          else
+            gradle wrapper --gradle-version 8.5
+            chmod +x gradlew
+            ./gradlew assembleDebug --stacktrace
+          fi
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
