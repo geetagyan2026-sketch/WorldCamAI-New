@@ -18,43 +18,36 @@ jobs:
       - name: Extract AI Studio Project Zip
         run: |
           mkdir -p android-clean
-          # गिटहब पर अपलोड की गई ज़िप फ़ाइल को अनज़िप करना
           unzip -o *.zip -d android-clean/ || true
           
-          # अगर ज़िप के अंदर कोई सब-फ़ोल्डर है तो उसे बाहर मुख्य डायरेक्टरी में लाना
           if [ -d "android-clean/geeta-gian-sketch" ]; then
             cp -r android-clean/geeta-gian-sketch/* android-clean/
           fi
 
-          # मैनिफ़ेस्ट फ़ाइल के पुराने एरर को पूरी तरह ओवरराइड (साफ़) करना
           MANIFEST_PATH=$(find android-clean -name "AndroidManifest.xml" -print -quit)
           if [ ! -z "$MANIFEST_PATH" ]; then
-            cat << 'EOF' > "$MANIFEST_PATH"
-            <?xml version="1.0" encoding="utf-8"?>
-            <manifest xmlns:android="http://github.com"
-                xmlns:tools="http://github.com">
-
-                <uses-permission android:name="android.permission.INTERNET" />
-                <uses-permission android:name="android.permission.CAMERA" />
-
-                <application
-                    android:allowBackup="true"
-                    android:icon="@mipmap/ic_launcher"
-                    android:label="WorldCamAI"
-                    android:roundIcon="@mipmap/ic_launcher_round"
-                    android:supportsRtl="true"
-                    android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                    <activity
-                        android:name="com.aistudio.worldcamai.MainActivity"
-                        android:exported="true">
-                        <intent-filter>
-                            <action android:name="android.intent.action.MAIN" />
-                            <category android:name="android.intent.category.LAUNCHER" />
-                        </intent-filter>
-                    </activity>
-                </application>
-            </manifest>
-            EOF
+            echo '<?xml version="1.0" encoding="utf-8"?>' > "$MANIFEST_PATH"
+            echo '<manifest xmlns:android="http://github.com"' >> "$MANIFEST_PATH"
+            echo '    xmlns:tools="http://github.com">' >> "$MANIFEST_PATH"
+            echo '    <uses-permission android:name="android.permission.INTERNET" />' >> "$MANIFEST_PATH"
+            echo '    <uses-permission android:name="android.permission.CAMERA" />' >> "$MANIFEST_PATH"
+            echo '    <application' >> "$MANIFEST_PATH"
+            echo '        android:allowBackup="true"' >> "$MANIFEST_PATH"
+            echo '        android:icon="@mipmap/ic_launcher"' >> "$MANIFEST_PATH"
+            echo '        android:label="WorldCamAI"' >> "$MANIFEST_PATH"
+            echo '        android:roundIcon="@mipmap/ic_launcher_round"' >> "$MANIFEST_PATH"
+            echo '        android:supportsRtl="true"' >> "$MANIFEST_PATH"
+            echo '        android:theme="@style/Theme.AppCompat.Light.NoActionBar">' >> "$MANIFEST_PATH"
+            echo '        <activity' >> "$MANIFEST_PATH"
+            echo '            android:name="com.example.ui.MainActivity"' >> "$MANIFEST_PATH"
+            echo '            android:exported="true">' >> "$MANIFEST_PATH"
+            echo '            <intent-filter>' >> "$MANIFEST_PATH"
+            echo '                <action android:name="android.intent.action.MAIN" />' >> "$MANIFEST_PATH"
+            echo '                <category android:name="android.intent.category.LAUNCHER" />' >> "$MANIFEST_PATH"
+            echo '            </intent-filter>' >> "$MANIFEST_PATH"
+            echo '        </activity>' >> "$MANIFEST_PATH"
+            echo '    </application>' >> "$MANIFEST_PATH"
+            echo '</manifest>' >> "$MANIFEST_PATH"
           fi
 
       - name: Setup Gradle
@@ -63,7 +56,7 @@ jobs:
       - name: Build with Gradle
         run: |
           cd android-clean
-          # अगर gradlew फ़ाइल गायब है तो उसे खुद बनाना
+          if [ -d "clean" ]; then cd clean; fi
           if [ ! -f "gradlew" ]; then
             gradle wrapper --gradle-version 8.5
           fi
