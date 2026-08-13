@@ -56,11 +56,14 @@ jobs:
       - name: Build with Gradle
         run: |
           cd android-clean
-          rm -f build.gradle settings.gradle app/build.gradle 2>/dev/null || true
+          if [ -d "clean" ]; then cd clean; fi
           
-          # यहाँ आपके कोड के लिए ज़रूरी Gradle 9.3.1 को पक्का सेट कर दिया गया है
+          # मिसिंग google-services.json एरर को रोकने के लिए नकली फ़ाइल बनाना
+          mkdir -p app/src/debug app/src/release app
+          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai"}}, "api_key": [{"current_key": "mock-key"}], "services": {"appinvite_service": {"status": 1}}}]}' > app/google-services.json
+          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai"}}, "api_key": [{"current_key": "mock-key"}], "services": {"appinvite_service": {"status": 1}}}]}' > app/src/debug/google-services.json
+
           gradle wrapper --gradle-version 9.3.1
-          
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
