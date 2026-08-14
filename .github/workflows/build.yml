@@ -27,7 +27,6 @@ jobs:
             fi
           done
 
-      # [नया स्टेप]: ऐप के अंदर AI बैकग्राउंड रिमूवल की लाइब्रेरी जोड़ना
       - name: Inject ML Kit Dependencies for Background Removal
         run: |
           find android-clean -name "build.gradle" -o -name "build.gradle.kts" | while read -r GRADLE_FILE; do
@@ -37,7 +36,6 @@ jobs:
             fi
           done
 
-      # [नया स्टेप]: 2612 लाइनों वाले कोड में गैलरी से फोटो चुनते ही बैकग्राउंड हटाने का लॉजिक सेट करना
       - name: Inject Gallery AI Background Remover Logic
         run: |
           find android-clean -name "MainActivity.kt" -o -name "MainActivity.java" | while read -r MAIN_FILE; do
@@ -111,7 +109,7 @@ jobs:
           ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
       - name: Upload WorldCamAI-App Artifact
-        uses: actions/artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
           name: WorldCamAI-App
           path: |
