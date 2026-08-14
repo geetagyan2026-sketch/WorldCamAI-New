@@ -11,6 +11,7 @@ jobs:
 
       - name: Setup Java (Upgraded to Java 21)
         uses: actions/setup-java@v4
+        id: setup-java
         with:
           distribution: 'zulu'
           java-version: '21'
@@ -38,28 +39,34 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 2. गिटहब के डिफॉल्ट कैशे को पूरी तरह बाईपास करने के लिए नया होम फोल्डर सेट करना
+          # 2. पर्यावरण वेरिएबल (Environment) में Java 21 को फिक्स करना
+          export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          echo "Using Java version from: $JAVA_HOME"
+          java -version
+          
+          # 3. गिटहब के डिफॉल्ट कैशे को पूरी तरह बाईपास करने के लिए नया होम फोल्डर सेट करना
           export GRADLE_USER_HOME="${{ github.workspace }}/.custom_gradle_home"
           mkdir -p "$GRADLE_USER_HOME"
           
-          # 3. सभी प्रॉपर्टीज फाइलों में कॉन्फिगरेशन कैशे को डिसेबल करना
+          # 4. सभी प्रॉपर्टीज फाइलों में कॉन्फिगरेशन कैशे को डिसेबल करना
           find . -name "gradle.properties" | while read -r PROP_FILE; do
             sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' "$PROP_FILE"
             echo "org.gradle.configuration-cache=false" >> "$PROP_FILE"
             echo "org.gradle.caching=false" >> "$PROP_FILE"
           done
           
-          # 4. फ्रेश ग्रेडल रैपर बनाना
-          gradle wrapper --gradle-version 8.2
+          # 5. फ्रेश ग्रेडल रैपर बनाना
+          gradle wrapper --gradle-version 8.5
           chmod +x ./gradlew
           
-          # 5. ज़रूरी मॉक फाइल्स बनाना
+          # 6. ज़रूरी मॉक फाइल्स बनाना
           mkdir -p app/src/debug app/src/release app
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
           
-          # 6. पूरी तरह फ्रेश कैशे डायरेक्टरी के साथ बिल्ड शुरू करना
-          ./gradlew clean assembleDebug --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
+          # 7. Java 21 का रास्ता देकर फ्रेश कम्पाइल शुरू करना
+          ./gradlew clean assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
