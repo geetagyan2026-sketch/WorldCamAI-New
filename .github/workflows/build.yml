@@ -36,41 +36,64 @@ jobs:
             fi
           done
 
-      - name: Inject Gallery AI Background Remover Logic
+      - name: Inject Gallery AI Background Remover Logic via Python
+        shell: python
         run: |
-          find android-clean -name "MainActivity.kt" -o -name "MainActivity.java" | while read -r MAIN_FILE; do
-            echo "Injecting AI Studio code into $MAIN_FILE"
-            sed -i '/class MainActivity/,$ { /^[[:space:]]*}$/i \
-            override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {\
-                super.onActivityResult(requestCode, resultCode, data)\
-                if (requestCode == 102 && resultCode == android.app.Activity.RESULT_OK) {\
-                    val imageUri = data?.data ?: return\
-                    val originalBitmap = android.provider.MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)\
-                    removePhotoBackground(originalBitmap)\
-                }\
-            }\
-            private fun removePhotoBackground(inputBitmap: android.graphics.Bitmap) {\
-                val segmenter = com.google.mlkit.vision.segmentation.Segmentation.getClient(\
-                    com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions.Builder()\
-                        .setDetectorMode(com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions.SINGLE_IMAGE_MODE).build())\
-                val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(inputBitmap, 0)\
-                segmenter.process(inputImage).addOnSuccessListener { mask ->\
-                    val resultBitmap = android.graphics.Bitmap.createBitmap(inputBitmap.width, inputBitmap.height, android.graphics.Bitmap.Config.ARGB_8888)\
-                    val buffer = mask.buffer; val w = mask.width; val h = mask.height\
-                    for (y in 0 until h) { for (x in 0 until w) {\
-                        if (buffer.float > 0.5) resultBitmap.setPixel(x, y, inputBitmap.getPixel(x, y))\
-                        else resultBitmap.setPixel(x, y, android.graphics.Color.TRANSPARENT)\
-                    }}\
-                    buffer.rewind()\
-                    findViewById<android.widget.ImageView>(resources.getIdentifier("liveSelfieImageView", "id", packageName))?.let { view ->\
-                        view.setImageBitmap(resultBitmap)\
-                        view.translationX = 0f; view.translationY = 0f; view.scaleX = 1.0f; view.scaleY = 1.0f\
-                    }\
-                }.addOnFailureListener {\
-                    findViewById<android.widget.ImageView>(resources.getIdentifier("liveSelfieImageView", "id", packageName))?.setImageBitmap(inputBitmap)\
-                }\
-            }' "$MAIN_FILE"
-          done
+          import os
+
+          code_to_inject = """
+              override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+                  super.onActivityResult(requestCode, resultCode, data)
+                  if (requestCode == 102 && resultCode == android.app.Activity.RESULT_OK) {
+                      val imageUri = data?.data ?: return
+                      val originalBitmap = android.provider.MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)
+                      removePhotoBackground(originalBitmap)
+                  }
+              }
+
+              private fun removePhotoBackground(inputBitmap: android.graphics.Bitmap) {
+                  val segmenter = com.google.mlkit.vision.segmentation.Segmentation.getClient(
+                      com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions.Builder()
+                          .setDetectorMode(com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions.SINGLE_IMAGE_MODE).build())
+                  val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(inputBitmap, 0)
+                  segmenter.process(inputImage).addOnSuccessListener { mask ->
+                      val resultBitmap = android.graphics.Bitmap.createBitmap(inputBitmap.width, inputBitmap.height, android.graphics.Bitmap.Config.ARGB_8888)
+                      val buffer = mask.buffer
+                      val w = mask.width
+                      val h = mask.height
+                      for (y in 0 until h) {
+                          for (x in 0 until w) {
+                              if (buffer.float > 0.5) resultBitmap.setPixel(x, y, inputBitmap.getPixel(x, y))
+                              else resultBitmap.setPixel(x, y, android.graphics.Color.TRANSPARENT)
+                          }
+                      }
+                      buffer.rewind()
+                      findViewById<android.widget.ImageView>(resources.getIdentifier("liveSelfieImageView", "id", packageName))?.let { view ->
+                          view.setImageBitmap(resultBitmap)
+                          view.translationX = 0f
+                          view.translationY = 0f
+                          view.scaleX = 1.0f
+                          view.scaleY = 1.0f
+                      }
+                  }.addOnFailureListener {
+                      findViewById<android.widget.ImageView>(resources.getIdentifier("liveSelfieImageView", "id", packageName))?.setImageBitmap(inputBitmap)
+                  }
+              }
+          """
+
+          for root, dirs, files in os.walk("android-clean"):
+              for file in files:
+                  if file in ["MainActivity.kt", "MainActivity.java"]:
+                      file_path = os.path.join(root, file)
+                      print(f"Injecting AI logic cleanly into: {file_path}")
+                      with open(file_path, "r", encoding="utf-8") as f:
+                          content = f.read()
+                      
+                      last_brace_index = content.rfind("}")
+                      if last_brace_index != -1:
+                          new_content = content[:last_brace_index] + code_to_inject + "\n}"
+                          with open(file_path, "w", encoding="utf-8") as f:
+                              f.write(new_content)
 
       - name: Setup Specific Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v3
