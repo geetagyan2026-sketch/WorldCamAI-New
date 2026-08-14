@@ -38,18 +38,16 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 2. पुराने किसी भी कैश के इस्तेमाल को पूरी तरह रोकना
-          unset GRADLE_USER_HOME
-          export GRADLE_USER_HOME=$(pwd)/.gradle_home
-          mkdir -p $GRADLE_USER_HOME
+          # 2. पुरानी किसी भी कैश सेटिंग्स को जबरन डिलीट करना
           rm -rf .gradle
+          rm -rf .gradle_home
           
-          # 3. gradle.properties में कॉन्फिगरेशन कैश को पूरी तरह बंद करना
-          if [ -f "gradle.properties" ]; then
-            sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' gradle.properties
-            echo "org.gradle.configuration-cache=false" >> gradle.properties
-            echo "org.gradle.caching=false" >> gradle.properties
-          fi
+          # 3. सभी प्रॉपर्टीज फाइलों में कॉन्फिगरेशन कैश को हार्ड-डिसेबल करना
+          find . -name "gradle.properties" | while read -r PROP_FILE; do
+            sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' "$PROP_FILE"
+            echo "org.gradle.configuration-cache=false" >> "$PROP_FILE"
+            echo "org.gradle.caching=false" >> "$PROP_FILE"
+          done
           
           # 4. फ्रेश ग्रेडल रैपर बनाना
           gradle wrapper --gradle-version 8.2
@@ -60,7 +58,7 @@ jobs:
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
           
-          # 6. बिना किसी भी प्रकार के बिल्ड कैश के फ्रेश कंपाइलेशन शुरू करना
+          # 6. बिना किसी जार-कैश के फ्रेश कम्पाइल शुरू करना
           ./gradlew clean assembleDebug --no-daemon --no-build-cache --no-configuration-cache --stacktrace
 
       - name: Upload Finished APK
