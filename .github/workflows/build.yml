@@ -28,7 +28,7 @@ jobs:
 
       - name: Build with Gradle Directly
         run: |
-          # 1. उस मुख्य फोल्डर में जाना जहाँ settings.gradle.kts मौजूद है
+          # 1. मुख्य फोल्डर में जाना जहाँ settings.gradle.kts है
           PROJECT_ROOT=$(find . -name "settings.gradle.kts" | head -n 1 | xargs dirname)
           
           if [ -z "$PROJECT_ROOT" ] || [ "$PROJECT_ROOT" = "." ]; then
@@ -38,18 +38,20 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 2. बिना कैश के फ्रेश ग्रेडल रैपर तैयार करना
+          # 2. पुराने किसी भी कैश के इस्तेमाल को पूरी तरह रोकना
           unset GRADLE_USER_HOME
           export GRADLE_USER_HOME=$(pwd)/.gradle_home
           mkdir -p $GRADLE_USER_HOME
+          rm -rf .gradle
           
           # 3. gradle.properties में कॉन्फिगरेशन कैश को पूरी तरह बंद करना
           if [ -f "gradle.properties" ]; then
             sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' gradle.properties
             echo "org.gradle.configuration-cache=false" >> gradle.properties
+            echo "org.gradle.caching=false" >> gradle.properties
           fi
           
-          # 4. सिस्टम के ग्रेडल का इस्तेमाल करके फ्रेश रैपर बनाना
+          # 4. फ्रेश ग्रेडल रैपर बनाना
           gradle wrapper --gradle-version 8.2
           chmod +x ./gradlew
           
@@ -58,8 +60,8 @@ jobs:
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
           
-          # 6. फ्रेश एपीके (APK) बिल्ड शुरू करना
-          ./gradlew assembleDebug --no-daemon --no-configuration-cache --project-cache-dir=$(pwd)/.gradle_project_cache
+          # 6. बिना किसी भी प्रकार के बिल्ड कैश के फ्रेश कंपाइलेशन शुरू करना
+          ./gradlew clean assembleDebug --no-daemon --no-build-cache --no-configuration-cache --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
