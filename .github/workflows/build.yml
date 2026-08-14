@@ -20,15 +20,7 @@ jobs:
           mkdir -p android-clean
           unzip -o "*.zip" -d android-clean/ || true
           
-          # अगर ज़िप के अंदर एक और android-clean फोल्डर बन गया है, तो उसे बाहर लाएं
-          if [ -d "android-clean/android-clean" ]; then
-            cp -r android-clean/android-clean/* android-clean/
-          fi
-
-          if [ -d "android-clean/geeta-gian-sketch" ]; then
-            cp -r android-clean/geeta-gian-sketch/* android-clean/
-          fi
-          
+          # अगर ज़िप के अंदर कोई भी दूसरा फोल्डर बना है, तो उसकी सभी फाइलें बाहर लाएं
           find android-clean -name "AndroidManifest.xml" | while read -r MANIFEST_PATH; do
             if [ -f "$MANIFEST_PATH" ]; then
               sed -i 's/<uses-permission[^>]*>\s*<\/uses-permission android:name="android.permission.INTERNET" \/>//g' "$MANIFEST_PATH"
@@ -40,16 +32,20 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          cd android-clean
+          # पूरे वर्कस्पेस में gradlew फाइल को ढूंढें
+          GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
           
-          # सही gradlew फाइल को ढूंढकर उसे चालू करने की अनुमति देना
-          find . -name "gradlew" -exec chmod +x {} \;
-          
-          # उस फोल्डर में जाना जहाँ gradlew मौजूद है
-          GRADLEW_DIR=$(find . -name "gradlew" -exec dirname {} \; | head -n 1)
-          if [ ! -z "$GRADLEW_DIR" ]; then
-            cd "$GRADLEW_DIR"
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "Error: gradlew file not found anywhere in the repository!"
+            exit 1
           fi
+          
+          # उस फोल्डर के अंदर जाएं जहाँ gradlew मौजूद है
+          GRADLEW_DIR=$(dirname "$GRADLEW_PATH")
+          cd "$GRADLEW_DIR"
+          
+          # फाइल को रन करने की परमिशन दें
+          chmod +x ./gradlew
           
           if [ -d "clean" ]; then ./gradlew clean; fi
           
