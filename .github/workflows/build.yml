@@ -19,15 +19,19 @@ jobs:
         run: |
           mkdir -p android-clean
           unzip -o "*.zip" -d android-clean/ || true
+          
+          # अगर ज़िप के अंदर एक और android-clean फोल्डर बन गया है, तो उसे बाहर लाएं
+          if [ -d "android-clean/android-clean" ]; then
+            cp -r android-clean/android-clean/* android-clean/
+          fi
 
           if [ -d "android-clean/geeta-gian-sketch" ]; then
             cp -r android-clean/geeta-gian-sketch/* android-clean/
           fi
-
-          # ऑटोमैटिक खराब परमिशन टैग को सही कोड से बदलना
+          
           find android-clean -name "AndroidManifest.xml" | while read -r MANIFEST_PATH; do
             if [ -f "$MANIFEST_PATH" ]; then
-              sed -i 's/<uses-permission[^>]*>/<uses-permission android:name="android.permission.INTERNET" \/>/g' "$MANIFEST_PATH"
+              sed -i 's/<uses-permission[^>]*>\s*<\/uses-permission android:name="android.permission.INTERNET" \/>//g' "$MANIFEST_PATH"
             fi
           done
 
@@ -37,15 +41,22 @@ jobs:
       - name: Build with Gradle
         run: |
           cd android-clean
+          
+          # सही gradlew फाइल को ढूंढकर उसे चालू करने की अनुमति देना
+          find . -name "gradlew" -exec chmod +x {} \;
+          
+          # उस फोल्डर में जाना जहाँ gradlew मौजूद है
+          GRADLEW_DIR=$(find . -name "gradlew" -exec dirname {} \; | head -n 1)
+          if [ -not -z "$GRADLEW_DIR" ]; then
+            cd "$GRADLEW_DIR"
+          fi
+          
           if [ -d "clean" ]; then ./gradlew clean; fi
-
-          # पैकेज नाम के साथ google-services.json सेट करना
+          
           mkdir -p app/src/debug app/src/release app
-          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "mock-id", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock-key"}]}]}' > app/src/debug/google-services.json
-          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mobilesdk_app_id": "mock-id", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock-key"}]}]}' > app/src/release/google-services.json
-
-          # KSP क्रैश से बचने के लिए --no-daemon फ्लैग जोड़ा गया है
-          chmod +x gradlew
+          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
+          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
+          
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload Finished APK
