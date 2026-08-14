@@ -60,9 +60,9 @@ jobs:
           gradle wrapper
           chmod +x ./gradlew
           
-          # 6. फिक्स: बिल्कुल सही और शुद्ध फॉर्मेट में google-services.json फाइल बनाना
+          # 6. फिक्स: आपके असली पैकेज नाम (com.aistudio.worldcamai.kxmpzq) के साथ google-services.json बनाना
           mkdir -p app/src/debug app/src/release app
-          JSON_CONTENT='{"project_info": {"project_number": "12345", "project_id": "mock-id", "storage_bucket": "://appspot.com"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.example.mock"}}, "api_key": [{"current_key": "mock_key"}], "services": {"appinvite_service": {"status": 1}}}]}'
+          JSON_CONTENT='{"project_info": {"project_number": "12345", "project_id": "mock-id", "storage_bucket": "://appspot.com"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock_key"}], "services": {"appinvite_service": {"status": 1}}}]}'
           
           echo "$JSON_CONTENT" > app/google-services.json
           echo "$JSON_CONTENT" > app/src/debug/google-services.json
