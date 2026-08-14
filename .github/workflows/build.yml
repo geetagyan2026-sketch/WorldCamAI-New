@@ -49,7 +49,7 @@ jobs:
           export GRADLE_USER_HOME="${{ github.workspace }}/.custom_gradle_home"
           mkdir -p "$GRADLE_USER_HOME"
           
-          # 4. सभी प्रॉपर्टीज फाइलों में एरर रोकने वाली और हेडलेस सेटिंग्स जोड़ना
+          # 4. सभी प्रॉपर्टीज फाइलों में आवश्यक सेटिंग्स जोड़ना
           find . -name "gradle.properties" | while read -r PROP_FILE; do
             sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' "$PROP_FILE"
             echo "org.gradle.configuration-cache=false" >> "$PROP_FILE"
@@ -60,8 +60,8 @@ jobs:
             echo "androidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true" >> "$PROP_FILE"
           done
           
-          # 5. फिक्स: ग्रेडल 9.7.0 डाउनलोड होने से रोकने के लिए रैपर वर्शन को 8.4 पर लॉक करना
-          gradle wrapper --gradle-version 8.4
+          # 5. फिक्स: आपके प्लगइन की मांग के अनुसार ग्रेडल वर्शन को बिल्कुल सटीक 9.3.1 पर सेट करना
+          gradle wrapper --gradle-version 9.3.1
           chmod +x ./gradlew
           
           # 6. पैकेज नाम के साथ सही google-services.json बनाना
@@ -70,7 +70,7 @@ jobs:
           echo "$JSON_CONTENT" > app/google-services.json
           echo "$JSON_CONTENT" > app/src/debug/google-services.json
           
-          # 7. स्थिर ग्रेडल वर्शन के साथ सीधे एपीके बनाना
+          # 7. बिल्कुल सटीक वर्शन के साथ एपीके बनाना शुरू करना
           ./gradlew assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -Dorg.gradle.jvmargs="-Djava.awt.headless=true" -Pandroid.overrideVersionCheck=true -Pandroidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true -x lint -x test --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
