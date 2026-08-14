@@ -15,44 +15,45 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Extract AI Studio Project Zip
         run: |
           mkdir -p android-clean
           unzip -o "*.zip" -d android-clean/ || true
           
-          # अगर ज़िप के अंदर कोई भी दूसरा फोल्डर बना है, तो उसकी सभी फाइलें बाहर लाएं
           find android-clean -name "AndroidManifest.xml" | while read -r MANIFEST_PATH; do
             if [ -f "$MANIFEST_PATH" ]; then
               sed -i 's/<uses-permission[^>]*>\s*<\/uses-permission android:name="android.permission.INTERNET" \/>//g' "$MANIFEST_PATH"
             fi
           done
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
       - name: Build with Gradle
         run: |
-          # पूरे वर्कस्पेस में gradlew फाइल को ढूंढें
-          GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
+          # 1. उस मुख्य फोल्डर में जाना जहाँ build.gradle.kts फाइल मौजूद है
+          PROJECT_ROOT=$(find . -name "settings.gradle.kts" | head -n 1 | xargs dirname)
           
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "Error: gradlew file not found anywhere in the repository!"
-            exit 1
+          if [ -z "$PROJECT_ROOT" ] || [ "$PROJECT_ROOT" = "." ]; then
+            PROJECT_ROOT="android-clean"
           fi
           
-          # उस फोल्डर के अंदर जाएं जहाँ gradlew मौजूद है
-          GRADLEW_DIR=$(dirname "$GRADLEW_PATH")
-          cd "$GRADLEW_DIR"
+          cd "$PROJECT_ROOT"
+          echo "Working directory is: $(pwd)"
           
-          # फाइल को रन करने की परमिशन दें
+          # 2. गायब gradlew फाइल को नए सिरे से खुद जेनरेट करना
+          echo "Generating missing gradle wrapper files..."
+          gradle wrapper --gradle-version 8.2
+          
+          # फाइल को रन करने की परमिशन देना
           chmod +x ./gradlew
           
-          if [ -d "clean" ]; then ./gradlew clean; fi
-          
+          # 3. ज़रूरी मॉक फाइल्स बनाना ताकि बिल्ड न रुके
           mkdir -p app/src/debug app/src/release app
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
           
+          # 4. एपीके (APK) बिल्ड शुरू करना
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload Finished APK
