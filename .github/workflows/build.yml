@@ -26,11 +26,11 @@ jobs:
             fi
           done
 
-      - name: Setup Gradle (Without Cache To Avoid Errors)
+      - name: Setup Gradle (Without Cache)
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.2
-          cache-disabled: true # पुराना खराब कैश इस्तेमाल होने से रोकेगा
+          cache-disabled: true
 
       - name: Build with Gradle
         run: |
@@ -44,22 +44,31 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # पुराना कोई भी लोकल कैश फोल्डर डिलीट करना
+          # 1. गिटहब के सर्वर से पुराने खराब कैश फोल्डर्स को पूरी तरह साफ करना
           rm -rf .gradle
+          rm -rf buildSrc/.gradle
+          rm -rf app/.gradle
+          rm -rf ~/.gradle/caches/
           
-          # अगर gradlew फाइल नहीं है, तो उसे यहाँ जनरेट करें
+          # 2. gradle.properties फाइल में कॉन्फिगरेशन कैश को जबरन बंद करना
+          if [ -f "gradle.properties" ]; then
+            sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' gradle.properties
+            echo "org.gradle.configuration-cache=false" >> gradle.properties
+          fi
+          
+          # 3. अगर gradlew फाइल नहीं है, तो उसे यहाँ जनरेट करें
           if [ ! -f "gradlew" ]; then
             gradle wrapper --gradle-version 8.2
           fi
           
           chmod +x ./gradlew
           
-          # ज़रूरी मॉक फाइल्स बनाना
+          # 4. ज़रूरी मॉक फाइल्स बनाना
           mkdir -p app/src/debug app/src/release app
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
           
-          # कॉन्फिगरेशन कैश के बिना साफ बिल्ड शुरू करना
+          # 5. बिना किसी पुराने कैश के बिल्कुल फ्रेश बिल्ड शुरू करना
           ./gradlew clean assembleDebug --no-daemon --no-configuration-cache --stacktrace
 
       - name: Upload Finished APK
