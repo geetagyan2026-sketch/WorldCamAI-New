@@ -9,12 +9,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java (Set to Stable Java 17)
-        uses: actions/setup-java@v4
-        id: setup-java
-        with:
-          distribution: 'zulu'
-          java-version: '17'
+      - name: Install Stable Java 17 Directly via Apt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+          echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
 
       - name: Extract AI Studio Project Zip
         run: |
@@ -39,11 +39,9 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 2. पर्यावरण वेरिएबल में Java 17 फिक्स करना
-          export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
+          # 2. पर्यावरण वेरिएबल में Java 17 और हेडलेस मोड को पूरी तरह लॉक करना
+          export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
           export PATH="$JAVA_HOME/bin:$PATH"
-          
-          # जावा को हेडलेस मोड में चलाना
           export GRADLE_OPTS="-Djava.awt.headless=true -Dorg.gradle.jvmargs=-Djava.awt.headless=true"
           
           # 3. गिटहब के डिफॉल्ट कैशे को बाईपास करना
@@ -58,8 +56,6 @@ jobs:
             echo "android.experimental.allowSmallerMinSdkVersion=true" >> "$PROP_FILE"
             echo "android.suppressUnsupportedCompileSdk=true" >> "$PROP_FILE"
             echo "org.gradle.jvmargs=-Djava.awt.headless=true" >> "$PROP_FILE"
-            
-            # कंपोज कंपाइलर वर्शन एरर को बाईपास करने की सेटिंग
             echo "androidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true" >> "$PROP_FILE"
           done
           
@@ -73,7 +69,7 @@ jobs:
           echo "$JSON_CONTENT" > app/google-services.json
           echo "$JSON_CONTENT" > app/src/debug/google-services.json
           
-          # 7. फिक्स: कंपोज चेक को दबाकर (Suppress) सीधे एपीके बनाना
+          # 7. बिल्कुल फ्रेश एनवायरनमेंट में सीधे एपीके बनाना
           ./gradlew assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -Pandroid.overrideVersionCheck=true -Pandroidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true -x lint -x test --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
