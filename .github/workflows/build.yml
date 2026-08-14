@@ -13,7 +13,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21' # वर्शन 65 एरर को ठीक करने के लिए इसे 21 किया गया है
+          java-version: '21'
 
       - name: Extract AI Studio Project Zip
         run: |
@@ -38,11 +38,11 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 2. पुरानी किसी भी कैश सेटिंग्स को जबरन डिलीट करना
-          rm -rf .gradle
-          rm -rf .gradle_home
+          # 2. गिटहब के डिफॉल्ट कैशे को पूरी तरह बाईपास करने के लिए नया होम फोल्डर सेट करना
+          export GRADLE_USER_HOME="${{ github.workspace }}/.custom_gradle_home"
+          mkdir -p "$GRADLE_USER_HOME"
           
-          # 3. सभी प्रॉपर्टीज फाइलों में कॉन्फिगरेशन कैश को हार्ड-डिसेबल करना
+          # 3. सभी प्रॉपर्टीज फाइलों में कॉन्फिगरेशन कैशे को डिसेबल करना
           find . -name "gradle.properties" | while read -r PROP_FILE; do
             sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' "$PROP_FILE"
             echo "org.gradle.configuration-cache=false" >> "$PROP_FILE"
@@ -58,8 +58,8 @@ jobs:
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
           
-          # 6. जावा 21 के साथ फ्रेश कम्पाइल शुरू करना
-          ./gradlew clean assembleDebug --no-daemon --no-build-cache --no-configuration-cache --stacktrace
+          # 6. पूरी तरह फ्रेश कैशे डायरेक्टरी के साथ बिल्ड शुरू करना
+          ./gradlew clean assembleDebug --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
