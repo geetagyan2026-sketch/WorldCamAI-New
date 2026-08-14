@@ -26,15 +26,9 @@ jobs:
             fi
           done
 
-      - name: Setup Gradle (Without Cache)
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.2
-          cache-disabled: true
-
-      - name: Build with Gradle
+      - name: Build with Gradle Directly
         run: |
-          # उस मुख्य फोल्डर में जाना जहाँ settings.gradle.kts मौजूद है
+          # 1. उस मुख्य फोल्डर में जाना जहाँ settings.gradle.kts मौजूद है
           PROJECT_ROOT=$(find . -name "settings.gradle.kts" | head -n 1 | xargs dirname)
           
           if [ -z "$PROJECT_ROOT" ] || [ "$PROJECT_ROOT" = "." ]; then
@@ -44,32 +38,28 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 1. गिटहब के सर्वर से पुराने खराब कैश फोल्डर्स को पूरी तरह साफ करना
-          rm -rf .gradle
-          rm -rf buildSrc/.gradle
-          rm -rf app/.gradle
-          rm -rf ~/.gradle/caches/
+          # 2. बिना कैश के फ्रेश ग्रेडल रैपर तैयार करना
+          unset GRADLE_USER_HOME
+          export GRADLE_USER_HOME=$(pwd)/.gradle_home
+          mkdir -p $GRADLE_USER_HOME
           
-          # 2. gradle.properties फाइल में कॉन्फिगरेशन कैश को जबरन बंद करना
+          # 3. gradle.properties में कॉन्फिगरेशन कैश को पूरी तरह बंद करना
           if [ -f "gradle.properties" ]; then
             sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' gradle.properties
             echo "org.gradle.configuration-cache=false" >> gradle.properties
           fi
           
-          # 3. अगर gradlew फाइल नहीं है, तो उसे यहाँ जनरेट करें
-          if [ ! -f "gradlew" ]; then
-            gradle wrapper --gradle-version 8.2
-          fi
-          
+          # 4. सिस्टम के ग्रेडल का इस्तेमाल करके फ्रेश रैपर बनाना
+          gradle wrapper --gradle-version 8.2
           chmod +x ./gradlew
           
-          # 4. ज़रूरी मॉक फाइल्स बनाना
+          # 5. ज़रूरी मॉक फाइल्स बनाना
           mkdir -p app/src/debug app/src/release app
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
           
-          # 5. बिना किसी पुराने कैश के बिल्कुल फ्रेश बिल्ड शुरू करना
-          ./gradlew clean assembleDebug --no-daemon --no-configuration-cache --stacktrace
+          # 6. फ्रेश एपीके (APK) बिल्ड शुरू करना
+          ./gradlew assembleDebug --no-daemon --no-configuration-cache --project-cache-dir=$(pwd)/.gradle_project_cache
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
