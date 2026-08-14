@@ -47,7 +47,7 @@ jobs:
           
           # उस फोल्डर में जाना जहाँ gradlew मौजूद है
           GRADLEW_DIR=$(find . -name "gradlew" -exec dirname {} \; | head -n 1)
-          if [ -not -z "$GRADLEW_DIR" ]; then
+          if [ ! -z "$GRADLEW_DIR" ]; then
             cd "$GRADLEW_DIR"
           fi
           
