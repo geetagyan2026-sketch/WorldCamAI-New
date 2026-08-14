@@ -39,36 +39,39 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 2. पर्यावरण वेरिएबल (Environment) में Java 21 को फिक्स करना
+          # 2. पर्यावरण वेरिएबल में Java 21 फिक्स करना
           export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
           export PATH="$JAVA_HOME/bin:$PATH"
+          
+          # KSP क्रैश को रोकने के लिए जावा को हेडलेस मोड में चलाना
+          export GRADLE_OPTS="-Djava.awt.headless=true -Dorg.gradle.jvmargs=-Djava.awt.headless=true"
           
           # 3. गिटहब के डिफॉल्ट कैशे को बाईपास करना
           export GRADLE_USER_HOME="${{ github.workspace }}/.custom_gradle_home"
           mkdir -p "$GRADLE_USER_HOME"
           
-          # 4. सभी प्रॉपर्टीज फाइलों में कॉन्फिगरेशन कैशे को डिसेबल करना
+          # 4. सभी प्रॉपर्टीज फाइलों में क्रैश रोकने वाली सेटिंग्स और हेडलेस मोड जोड़ना
           find . -name "gradle.properties" | while read -r PROP_FILE; do
             sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' "$PROP_FILE"
             echo "org.gradle.configuration-cache=false" >> "$PROP_FILE"
             echo "org.gradle.caching=false" >> "$PROP_FILE"
             echo "android.experimental.allowSmallerMinSdkVersion=true" >> "$PROP_FILE"
             echo "android.suppressUnsupportedCompileSdk=true" >> "$PROP_FILE"
+            echo "org.gradle.jvmargs=-Djava.awt.headless=true" >> "$PROP_FILE"
           done
           
-          # 5. प्रोजेक्ट की अपनी डिफ़ॉल्ट सेटिंग्स जेनरेट करना
+          # 5. प्रोजेक्ट की डिफ़ॉल्ट रैपर सेटिंग्स
           gradle wrapper
           chmod +x ./gradlew
           
-          # 6. फिक्स: आपके असली पैकेज नाम (com.aistudio.worldcamai.kxmpzq) के साथ google-services.json बनाना
+          # 6. पैकेज नाम के साथ सही google-services.json बनाना
           mkdir -p app/src/debug app/src/release app
           JSON_CONTENT='{"project_info": {"project_number": "12345", "project_id": "mock-id", "storage_bucket": "://appspot.com"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock_key"}], "services": {"appinvite_service": {"status": 1}}}]}'
-          
           echo "$JSON_CONTENT" > app/google-services.json
           echo "$JSON_CONTENT" > app/src/debug/google-services.json
           
-          # 7. प्रोजेक्ट के ओरिजिनल कंपैटिबल वर्जन के साथ बिल्ड शुरू करना
-          ./gradlew clean assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
+          # 7. फिक्स: हेडलेस मोड फ्लैग देकर KSP एरर को रोकते हुए सीधे एपीके बनाना
+          ./gradlew assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -x lint -x test --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
