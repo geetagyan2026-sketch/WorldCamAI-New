@@ -15,9 +15,6 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
       - name: Extract AI Studio Project Zip
         run: |
           mkdir -p android-clean
@@ -29,9 +26,15 @@ jobs:
             fi
           done
 
+      - name: Setup Gradle (Without Cache To Avoid Errors)
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.2
+          cache-disabled: true # पुराना खराब कैश इस्तेमाल होने से रोकेगा
+
       - name: Build with Gradle
         run: |
-          # 1. उस मुख्य फोल्डर में जाना जहाँ build.gradle.kts फाइल मौजूद है
+          # उस मुख्य फोल्डर में जाना जहाँ settings.gradle.kts मौजूद है
           PROJECT_ROOT=$(find . -name "settings.gradle.kts" | head -n 1 | xargs dirname)
           
           if [ -z "$PROJECT_ROOT" ] || [ "$PROJECT_ROOT" = "." ]; then
@@ -41,20 +44,23 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 2. गायब gradlew फाइल को नए सिरे से खुद जेनरेट करना
-          echo "Generating missing gradle wrapper files..."
-          gradle wrapper --gradle-version 8.2
+          # पुराना कोई भी लोकल कैश फोल्डर डिलीट करना
+          rm -rf .gradle
           
-          # फाइल को रन करने की परमिशन देना
+          # अगर gradlew फाइल नहीं है, तो उसे यहाँ जनरेट करें
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper --gradle-version 8.2
+          fi
+          
           chmod +x ./gradlew
           
-          # 3. ज़रूरी मॉक फाइल्स बनाना ताकि बिल्ड न रुके
+          # ज़रूरी मॉक फाइल्स बनाना
           mkdir -p app/src/debug app/src/release app
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
           
-          # 4. एपीके (APK) बिल्ड शुरू करना
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          # कॉन्फिगरेशन कैश के बिना साफ बिल्ड शुरू करना
+          ./gradlew clean assembleDebug --no-daemon --no-configuration-cache --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
