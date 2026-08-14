@@ -27,7 +27,7 @@ jobs:
             fi
           done
 
-      - name: Setup Specific Gradle 9.3.1 (To Prevent 9.7.0 Autoupdate)
+      - name: Setup Specific Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '9.3.1'
@@ -72,7 +72,11 @@ jobs:
           echo "$JSON_CONTENT" > app/google-services.json
           echo "$JSON_CONTENT" > app/src/debug/google-services.json
           
-          # 6. सिस्टम में इंस्टॉल्ड फ्रेश ग्रेडल 9.3.1 से सीधे बिल्ड शुरू करना (बिना ./gradlew के)
+          # 6. फिक्स: 'validateSigningDebug' एरर को रोकने के लिए खुद की डिफ़ॉल्ट debug.keystore चाबी बनाना
+          keytool -genkey -v -keystore app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          
+          # 7. सिस्टम में इंस्टॉल्ड फ्रेश ग्रेडल 9.3.1 से सीधे बिल्ड शुरू करना
           gradle assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -Dorg.gradle.jvmargs="-Djava.awt.headless=true" -Pandroid.overrideVersionCheck=true -Pandroidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true -x lint -x test --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
