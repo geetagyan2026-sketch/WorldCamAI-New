@@ -103,19 +103,17 @@ jobs:
 
       - name: Build with Gradle Directly
         run: |
-          # सही प्रोजेक्ट रूट ढूंढना जो कि हमेशा android-clean फ़ोल्डर होगा
-          PROJECT_ROOT="android-clean"
-          if [ -d "android-clean/app" ]; then
-            PROJECT_ROOT="android-clean"
-          else
-            NESTED_ROOT=$(find android-clean -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs dirname)
-            if [ ! -z "$NESTED_ROOT" ]; then
-              PROJECT_ROOT="$NESTED_ROOT"
-            fi
+          # पूरे प्रोजेक्ट के अंदर गहराई से gradlew फाइल को खोजना
+          GRADLEW_PATH=$(find android-clean -name "gradlew" | head -n 1)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "Error: gradlew file completely missing from zip!"
+            exit 1
           fi
           
+          # जहां gradlew मिली, उसी फोल्डर को रूट मानना
+          PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
           cd "$PROJECT_ROOT"
-          echo "Working directory accurately set to: $(pwd)"
+          echo "Working directory accurately updated to gradlew root: $(pwd)"
           
           export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
           export PATH="$JAVA_HOME/bin:$PATH"
