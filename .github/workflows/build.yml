@@ -56,16 +56,18 @@ jobs:
             echo "android.suppressUnsupportedCompileSdk=true" >> "$PROP_FILE"
           done
           
-          # 5. फिक्स: जबरन नया वर्जन थोपने के बजाय, प्रोजेक्ट की अपनी डिफ़ॉल्ट सेटिंग्स जेनरेट करना
+          # 5. प्रोजेक्ट की अपनी डिफ़ॉल्ट सेटिंग्स जेनरेट करना
           gradle wrapper
           chmod +x ./gradlew
           
-          # 6. ज़रूरी मॉक फाइल्स बनाना
+          # 6. फिक्स: बिल्कुल सही और शुद्ध फॉर्मेट में google-services.json फाइल बनाना
           mkdir -p app/src/debug app/src/release app
-          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
-          echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
+          JSON_CONTENT='{"project_info": {"project_number": "12345", "project_id": "mock-id", "storage_bucket": "://appspot.com"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.example.mock"}}, "api_key": [{"current_key": "mock_key"}], "services": {"appinvite_service": {"status": 1}}}]}'
           
-          # 7. प्रोजेक्ट के ओरिजिनल कंपैटिबल वर्जन के साथ सीधे बिल्ड शुरू करना
+          echo "$JSON_CONTENT" > app/google-services.json
+          echo "$JSON_CONTENT" > app/src/debug/google-services.json
+          
+          # 7. प्रोजेक्ट के ओरिजिनल कंपैटिबल वर्जन के साथ बिल्ड शुरू करना
           ./gradlew clean assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
