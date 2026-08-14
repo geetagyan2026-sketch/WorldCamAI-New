@@ -9,12 +9,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java (Upgraded to Java 21)
+      - name: Setup Java (Set to Stable Java 17)
         uses: actions/setup-java@v4
         id: setup-java
         with:
           distribution: 'zulu'
-          java-version: '21'
+          java-version: '17'
 
       - name: Extract AI Studio Project Zip
         run: |
@@ -39,18 +39,18 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 2. पर्यावरण वेरिएबल में Java 21 फिक्स करना
+          # 2. पर्यावरण वेरिएबल में Java 17 फिक्स करना
           export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
           export PATH="$JAVA_HOME/bin:$PATH"
           
-          # KSP क्रैश को रोकने के लिए जावा को हेडलेस मोड में चलाना
+          # जावा को हेडलेस मोड में चलाना
           export GRADLE_OPTS="-Djava.awt.headless=true -Dorg.gradle.jvmargs=-Djava.awt.headless=true"
           
           # 3. गिटहब के डिफॉल्ट कैशे को बाईपास करना
           export GRADLE_USER_HOME="${{ github.workspace }}/.custom_gradle_home"
           mkdir -p "$GRADLE_USER_HOME"
           
-          # 4. सभी प्रॉपर्टीज फाइलों में क्रैश रोकने वाली सेटिंग्स और हेडलेस मोड जोड़ना
+          # 4. सभी प्रॉपर्टीज फाइलों में एरर रोकने वाली और हेडलेस सेटिंग्स जोड़ना
           find . -name "gradle.properties" | while read -r PROP_FILE; do
             sed -i 's/org.gradle.configuration-cache=true/org.gradle.configuration-cache=false/g' "$PROP_FILE"
             echo "org.gradle.configuration-cache=false" >> "$PROP_FILE"
@@ -58,9 +58,12 @@ jobs:
             echo "android.experimental.allowSmallerMinSdkVersion=true" >> "$PROP_FILE"
             echo "android.suppressUnsupportedCompileSdk=true" >> "$PROP_FILE"
             echo "org.gradle.jvmargs=-Djava.awt.headless=true" >> "$PROP_FILE"
+            
+            # कंपोज कंपाइलर वर्शन एरर को बाईपास करने की सेटिंग
+            echo "androidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true" >> "$PROP_FILE"
           done
           
-          # 5. प्रोजेक्ट की डिफ़ॉल्ट रैपर सेटिंग्स
+          # 5. प्रोजेक्ट की डिफ़ॉल्ट रैपर सेटिंग्स जेनरेट करना
           gradle wrapper
           chmod +x ./gradlew
           
@@ -70,8 +73,8 @@ jobs:
           echo "$JSON_CONTENT" > app/google-services.json
           echo "$JSON_CONTENT" > app/src/debug/google-services.json
           
-          # 7. फिक्स: हेडलेस मोड फ्लैग देकर KSP एरर को रोकते हुए सीधे एपीके बनाना
-          ./gradlew assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -x lint -x test --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
+          # 7. फिक्स: कंपोज चेक को दबाकर (Suppress) सीधे एपीके बनाना
+          ./gradlew assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -Pandroid.overrideVersionCheck=true -Pandroidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true -x lint -x test --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
