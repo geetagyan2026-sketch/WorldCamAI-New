@@ -9,12 +9,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Stable Java 17 Directly via Apt
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk
-          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-          echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
+      - name: Setup Java (Stable Java 17)
+        uses: actions/setup-java@v4
+        id: setup-java
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
       - name: Extract AI Studio Project Zip
         run: |
@@ -26,6 +26,12 @@ jobs:
               sed -i 's/<uses-permission[^>]*>\s*<\/uses-permission android:name="android.permission.INTERNET" \/>//g' "$MANIFEST_PATH"
             fi
           done
+
+      - name: Setup Specific Gradle 9.3.1 (To Prevent 9.7.0 Autoupdate)
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '9.3.1'
+          cache-disabled: true
 
       - name: Build with Gradle Directly
         run: |
@@ -40,12 +46,12 @@ jobs:
           echo "Working directory is: $(pwd)"
           
           # 2. पर्यावरण वेरिएबल में Java 17 और हेडलेस मोड को लॉक करना
-          export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+          export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
           export PATH="$JAVA_HOME/bin:$PATH"
           export GRADLE_OPTS="-Djava.awt.headless=true -Dorg.gradle.jvmargs=\"-Djava.awt.headless=true\""
           export JAVA_TOOL_OPTIONS="-Djava.awt.headless=true"
           
-          # 3. गिटहब के डिफॉल्ट कैशे को बाईपास करना
+          # 3. पुराने कैशे को बाईपास करना
           export GRADLE_USER_HOME="${{ github.workspace }}/.custom_gradle_home"
           mkdir -p "$GRADLE_USER_HOME"
           
@@ -60,18 +66,14 @@ jobs:
             echo "androidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true" >> "$PROP_FILE"
           done
           
-          # 5. ग्रेडल वर्शन को बिल्कुल सटीक 9.3.1 पर बनाए रखना
-          gradle wrapper --gradle-version 9.3.1
-          chmod +x ./gradlew
-          
-          # 6. पैकेज नाम के साथ सही google-services.json बनाना
+          # 5. पैकेज नाम के साथ सही google-services.json बनाना
           mkdir -p app/src/debug app/src/release app
           JSON_CONTENT='{"project_info": {"project_number": "12345", "project_id": "mock-id", "storage_bucket": "://appspot.com"}, "client": [{"client_info": {"mobilesdk_app_id": "1:12345:android:12345", "android_client_info": {"package_name": "com.aistudio.worldcamai.kxmpzq"}}, "api_key": [{"current_key": "mock_key"}], "services": {"appinvite_service": {"status": 1}}}]}'
           echo "$JSON_CONTENT" > app/google-services.json
           echo "$JSON_CONTENT" > app/src/debug/google-services.json
           
-          # 7. फिक्स: किसी भी कड़क वार्निंग या माइनर एरर चेकिंग को रोककर जबरन बिल्ड पास करना
-          ./gradlew assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -Dorg.gradle.jvmargs="-Djava.awt.headless=true" -Pandroid.overrideVersionCheck=true -Pandroidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true -x lint -x test --continue --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
+          # 6. सिस्टम में इंस्टॉल्ड फ्रेश ग्रेडल 9.3.1 से सीधे बिल्ड शुरू करना (बिना ./gradlew के)
+          gradle assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -Dorg.gradle.jvmargs="-Djava.awt.headless=true" -Pandroid.overrideVersionCheck=true -Pandroidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true -x lint -x test --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
