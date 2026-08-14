@@ -9,11 +9,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup Java (Upgraded to Java 21)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21' # वर्शन 65 एरर को ठीक करने के लिए इसे 21 किया गया है
 
       - name: Extract AI Studio Project Zip
         run: |
@@ -58,7 +58,7 @@ jobs:
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/google-services.json
           echo '{"project_info": {"project_number": "12345", "project_id": "mock-id"}, "client": [{"client_info": {"mob"}}]}' > app/src/debug/google-services.json
           
-          # 6. बिना किसी जार-कैश के फ्रेश कम्पाइल शुरू करना
+          # 6. जावा 21 के साथ फ्रेश कम्पाइल शुरू करना
           ./gradlew clean assembleDebug --no-daemon --no-build-cache --no-configuration-cache --stacktrace
 
       - name: Upload Finished APK
