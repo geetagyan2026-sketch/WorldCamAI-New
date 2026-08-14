@@ -39,10 +39,11 @@ jobs:
           cd "$PROJECT_ROOT"
           echo "Working directory is: $(pwd)"
           
-          # 2. पर्यावरण वेरिएबल में Java 17 और हेडलेस मोड को पूरी तरह लॉक करना
+          # 2. पर्यावरण वेरिएबल में Java 17 और हेडलेस मोड को लॉक करना
           export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
           export PATH="$JAVA_HOME/bin:$PATH"
-          export GRADLE_OPTS="-Djava.awt.headless=true -Dorg.gradle.jvmargs=-Djava.awt.headless=true"
+          export GRADLE_OPTS="-Djava.awt.headless=true -Dorg.gradle.jvmargs=\"-Djava.awt.headless=true\""
+          export JAVA_TOOL_OPTIONS="-Djava.awt.headless=true"
           
           # 3. गिटहब के डिफॉल्ट कैशे को बाईपास करना
           export GRADLE_USER_HOME="${{ github.workspace }}/.custom_gradle_home"
@@ -55,12 +56,12 @@ jobs:
             echo "org.gradle.caching=false" >> "$PROP_FILE"
             echo "android.experimental.allowSmallerMinSdkVersion=true" >> "$PROP_FILE"
             echo "android.suppressUnsupportedCompileSdk=true" >> "$PROP_FILE"
-            echo "org.gradle.jvmargs=-Djava.awt.headless=true" >> "$PROP_FILE"
+            echo "org.gradle.jvmargs=-Djava.awt.headless=true -Xmx2048m" >> "$PROP_FILE"
             echo "androidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true" >> "$PROP_FILE"
           done
           
-          # 5. प्रोजेक्ट की डिफ़ॉल्ट रैपर सेटिंग्स जेनरेट करना
-          gradle wrapper
+          # 5. फिक्स: ग्रेडल 9.7.0 डाउनलोड होने से रोकने के लिए रैपर वर्शन को 8.4 पर लॉक करना
+          gradle wrapper --gradle-version 8.4
           chmod +x ./gradlew
           
           # 6. पैकेज नाम के साथ सही google-services.json बनाना
@@ -69,8 +70,8 @@ jobs:
           echo "$JSON_CONTENT" > app/google-services.json
           echo "$JSON_CONTENT" > app/src/debug/google-services.json
           
-          # 7. बिल्कुल फ्रेश एनवायरनमेंट में सीधे एपीके बनाना
-          ./gradlew assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -Pandroid.overrideVersionCheck=true -Pandroidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true -x lint -x test --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
+          # 7. स्थिर ग्रेडल वर्शन के साथ सीधे एपीके बनाना
+          ./gradlew assembleDebug -Djava.awt.headless=true -Dorg.gradle.java.home="$JAVA_HOME" -Dorg.gradle.jvmargs="-Djava.awt.headless=true" -Pandroid.overrideVersionCheck=true -Pandroidx.compose.compiler.plugins.kotlin.suppressKotlinVersionCompatibilityCheck=true -x lint -x test --no-daemon --no-build-cache --no-configuration-cache --project-cache-dir="$GRADLE_USER_HOME/project_cache" --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
